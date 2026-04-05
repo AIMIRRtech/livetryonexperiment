@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>AIMIRR — Virtual Try-On</title>
+  <meta name="description" content="Experience AIMIRR's AI-powered virtual try-on. See how garments look on you in real time." />
+  <meta http-equiv="Permissions-Policy" content="camera=*, microphone=*, display-capture=*" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== LOADING SCREEN ===== -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+          <rect x="4" y="4" width="44" height="44" rx="13" stroke="url(#lg1)" stroke-width="2.5"/>
+          <path d="M17 35V22l9 6.5 9-6.5v13" stroke="url(#lg1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="lg1" x1="4" y1="4" x2="48" y2="48">
+              <stop stop-color="#C964CF"/><stop offset="1" stop-color="#8B5CF6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h2 class="loading-brand">AIMIRR Try-On</h2>
+      <p id="loadingStatus">Initializing...</p>
+      <div class="loading-bar"><div id="loadingProgress" class="loading-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div id="app" class="app" style="display:none">
+    <div id="viewport" class="viewport">
+      <!-- Media layers -->
+      <video id="inputVideo" playsinline muted crossorigin="anonymous"></video>
+      <img id="inputImage" alt="Input" crossorigin="anonymous" />
+      <canvas id="segmentationCanvas"></canvas>
+      <canvas id="overlayCanvas"></canvas>
+
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="brand-group">
+          <svg width="28" height="28" viewBox="0 0 52 52" fill="none" class="brand-icon">
+            <rect x="4" y="4" width="44" height="44" rx="13" stroke="currentColor" stroke-width="2.5"/>
+            <path d="M17 35V22l9 6.5 9-6.5v13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="brand-name">aimirr</span>
+          <span class="brand-tag">TRY-ON</span>
+        </div>
+        <div class="top-right">
+          <div id="fpsCounter" class="fps-pill">-- FPS</div>
+        </div>
+      </div>
+
+      <!-- Status Pill -->
+      <div id="statusPill" class="status-pill">
+        <div class="status-dot"></div>
+        <span id="statusText">Ready</span>
+      </div>
+
+      <!-- Pose Guide -->
+      <div id="poseGuide" class="pose-guide">
+        <svg viewBox="0 0 120 180" fill="none" class="pose-outline">
+          <ellipse cx="60" cy="28" rx="16" ry="20" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.45"/>
+          <path d="M44 48 Q32 54 24 74 L20 108 L32 108 L36 82 L44 64 Z" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" fill="none" opacity="0.4"/>
+          <path d="M76 48 Q88 54 96 74 L100 108 L88 108 L84 82 L76 64 Z" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" fill="none" opacity="0.4"/>
+          <path d="M44 48 L44 100 L37 152 L30 175 L44 175 L52 135 L60 110 L68 135 L76 175 L90 175 L83 152 L76 100 L76 48 Z" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" fill="none" opacity="0.4"/>
+        </svg>
+        <p class="pose-hint">Stand in frame with arms slightly out</p>
+      </div>
+
+      <!-- Product Selector -->
+      <div id="productPanel" class="product-panel">
+        <div class="product-panel-header">
+          <button id="productToggleBtn" class="product-toggle-btn" data-testid="button-product-toggle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+            <span>Products</span>
+            <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+        <div id="productGrid" class="product-grid">
+          <button class="product-card active" data-product="default" data-testid="product-default">
+            <div class="product-swatch default-swatch"></div>
+            <div class="product-info">
+              <span class="product-name">Red Jacket</span>
+              <span class="product-meta">Default</span>
+            </div>
+          </button>
+          <button class="product-card" data-product="aurora-pullover" data-testid="product-aurora">
+            <img src="assets/products/aurora-pullover.png" alt="Aurora Pullover"  />
+            <div class="product-info">
+              <span class="product-name">Aurora Pullover</span>
+              <span class="product-meta">Women's &middot; $50</span>
+            </div>
+          </button>
+          <button class="product-card" data-product="nebula-pullover" data-testid="product-nebula">
+            <img src="assets/products/nebula-pullover.png" alt="Nebula Pullover"  />
+            <div class="product-info">
+              <span class="product-name">Nebula Pullover</span>
+              <span class="product-meta">Men's &middot; $50</span>
+            </div>
+          </button>
+          <button class="product-card" data-product="phantom-zip" data-testid="product-phantom">
+            <img src="assets/products/phantom-zip.png" alt="Phantom Zip"  />
+            <div class="product-info">
+              <span class="product-name">Phantom Zip</span>
+              <span class="product-meta">Men's &middot; $50</span>
+            </div>
+          </button>
+          <button class="product-card" data-product="prism-zip" data-testid="product-prism">
+            <img src="assets/products/prism-zip.png" alt="Prism Zip"  />
+            <div class="product-info">
+              <span class="product-name">Prism Zip</span>
+              <span class="product-meta">Women's &middot; $50</span>
+            </div>
+          </button>
+        </div>
+        <a id="shopLink" class="shop-link" href="https://neonkernel.com/products/womens-futuristic-hoodie-without-zipper" target="_blank" rel="noopener" data-testid="link-shop">
+          Shop on NeonKernel
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+
+      <!-- Bottom Controls -->
+      <div class="bottom-controls">
+        <!-- Source Selector -->
+        <div class="source-bar">
+          <button class="source-btn active" data-source="camera" data-testid="source-camera">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Camera</span>
+          </button>
+          <button class="source-btn" data-source="upload-video" data-testid="source-video">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <span>Video</span>
+          </button>
+          <button class="source-btn" data-source="upload-image" data-testid="source-image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Image</span>
+          </button>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+          <button id="flipCameraBtn" class="action-btn" title="Flip camera" data-testid="button-flip">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+          <button id="toggleTrackingBtn" class="action-btn primary" title="Start / Stop" data-testid="button-toggle-tracking">
+            <svg id="playIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg id="stopIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          </button>
+          <button id="segToggleBtn" class="action-btn active" title="Background removal" data-testid="button-seg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+          <button id="screenshotBtn" class="action-btn" title="Screenshot" data-testid="button-screenshot">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+        </div>
+
+        <input id="fileInput" type="file" accept="image/*,video/*" style="display:none" />
+
+        <!-- Texture Upload -->
+        <div class="texture-upload-bar">
+          <label class="texture-upload-btn" data-testid="button-texture-upload">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Upload Texture</span>
+            <input id="textureInput" type="file" accept="image/png,image/jpeg,image/webp" style="display:none" />
+          </label>
+          <button id="textureResetBtn" class="texture-reset-btn" style="display:none" data-testid="button-texture-reset">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Texture URL Input -->
+        <div class="texture-url-bar">
+          <input id="textureUrlInput" type="text" class="texture-url-input" placeholder="Paste texture image URL..." data-testid="input-texture-url" />
+          <button id="textureUrlLoadBtn" class="texture-url-load-btn" data-testid="button-texture-url-load">Load</button>
+        </div>
+      </div>
+
+      <!-- Powered-by Footer -->
+      <div class="footer-brand">Powered by <strong>AIMIRR</strong></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.171.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.171.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

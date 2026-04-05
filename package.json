@@ -1,0 +1,13 @@
+{
+  "name": "aimirr-tryon-widget",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AIMIRR Professional Virtual Try-On Widget",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
